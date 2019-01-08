@@ -1,0 +1,15 @@
+#!/bin/bash
+
+function cleanup () {
+        killall actor_manager
+        killall actor_worker
+}
+
+trap cleanup INT TERM EXIT
+
+actor_manager&
+actor_worker&
+sleep 3
+./test_mnist_cnn.exe hello
+
+trap - INT TERM EXIT
