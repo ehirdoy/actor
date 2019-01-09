@@ -17,15 +17,19 @@ let make_network input_shape =
   |> linear 10 ~act_typ:Activation.(Softmax 1)
   |> get_network
 
-
+module Ctx = Actor.Mapre
+module M1 = Owl_neural_parallel.Make (Owl.Neural.S.Graph) (Actor.Param)
 let train () =
+  Ctx.init Sys.argv.(1) "tcp://localhost:5555";
   let x, _, y = Dataset.load_mnist_train_data_arr () in
   let network = make_network [|28;28;1|] in
   Graph.print network;
   let params = Params.config
     ~batch:(Batch.Mini 100) ~learning_rate:(Learning_Rate.Adagrad 0.005) 0.1
   in
-  Graph.train ~params network x y |> ignore;
+  let url = Actor_config.manager_addr in
+  let jid = Sys.argv.(1) in
+  M1.train ~params network x y jid url |> ignore;
   network
 
 
