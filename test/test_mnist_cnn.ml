@@ -4,12 +4,11 @@
 open Owl
 open Neural.S
 open Neural.S.Graph
-open Neural.S.Algodiff
 
 
 let make_network input_shape =
   input input_shape
-  |> lambda (fun x -> Maths.(x / F 256.))
+  |> normalisation ~decay:0.
   |> conv2d [|5;5;1;32|] [|1;1|] ~act_typ:Activation.Relu
   |> max_pool2d [|2;2|] [|2;2|]
   |> dropout 0.1
@@ -17,7 +16,7 @@ let make_network input_shape =
   |> linear 10 ~act_typ:Activation.(Softmax 1)
   |> get_network
 
-
+module M1 = Owl_neural_parallel.Make (Owl.Neural.S.Graph) (Actor.Param)
 let train () =
   let x, _, y = Dataset.load_mnist_train_data_arr () in
   let network = make_network [|28;28;1|] in
@@ -25,7 +24,9 @@ let train () =
   let params = Params.config
     ~batch:(Batch.Mini 100) ~learning_rate:(Learning_Rate.Adagrad 0.005) 0.1
   in
-  Graph.train ~params network x y |> ignore;
+  let url = Actor_config.manager_addr in
+  let jid = Sys.argv.(1) in
+  M1.train ~params network x y jid url |> ignore;
   network
 
 
